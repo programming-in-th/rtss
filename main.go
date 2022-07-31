@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
+	"net/url"
 	"time"
 
+	"github.com/programming-in-th/rtss/connection"
 	"github.com/programming-in-th/rtss/group"
 )
 
@@ -42,7 +43,24 @@ func SSE(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	http.HandleFunc("/stream", SSE)
+	// http.HandleFunc("/stream", SSE)
 
-	log.Fatal("HTTP server error: ", http.ListenAndServe("localhost:8080", nil))
+	// log.Fatal("HTTP server error: ", http.ListenAndServe("localhost:8080", nil))
+
+	// @TODO pass message to SSE
+	u := url.URL{Scheme: "ws", Host: "157.230.244.51:4000", Path: "/socket/websocket"}
+
+	s := &connection.Socket{UrlString: u}
+
+	s.Connect()
+
+	channel := s.SetChannel("realtime:public:Submission")
+
+	channel.Join()
+	channel.On("*", func(data interface{}) {
+		fmt.Println(data)
+	})
+
+	s.Listen()
+
 }

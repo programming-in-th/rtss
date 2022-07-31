@@ -14,7 +14,7 @@ type PhxJson struct {
 }
 
 type CallBackListener struct {
-	Callback func(map[string][]byte)
+	Callback func(interface{})
 	Event    string
 }
 
@@ -24,7 +24,7 @@ type Channel struct {
 	Listeners []CallBackListener
 }
 
-func GenJson(topic string) string {
+func GenJson(topic string) []byte {
 	pl := &PhxJson{
 		Topic:   topic,
 		Event:   "phx_join",
@@ -34,9 +34,22 @@ func GenJson(topic string) string {
 
 	data, _ := json.Marshal(pl)
 
-	return string(data)
+	return data
 }
 
-func (c Channel) Join() {
+func (c *Channel) Join() {
+	j := GenJson(c.Topic)
+	c.Socket.WriteMessage(websocket.TextMessage, j)
+}
 
+func (c *Channel) On(event string, callback func(interface{})) {
+	c.Listeners = append(c.Listeners, CallBackListener{Callback: callback, Event: event})
+}
+
+func (c *Channel) Off(event string) {
+	for i := range c.Listeners {
+		if c.Listeners[i].Event == event {
+			c.Listeners = append(c.Listeners[:i], c.Listeners[i+1:]...)
+		}
+	}
 }

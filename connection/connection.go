@@ -2,7 +2,6 @@ package connection
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/url"
 	"time"
@@ -15,17 +14,24 @@ type Socket struct {
 	Connection *websocket.Conn
 	Connected  bool
 	UrlString  url.URL
-	Channels   []channel.Channel
+	Channels   []*channel.Channel
+}
+
+type Reply struct {
+	Event   string      `json:"event"`
+	Payload interface{} `json:"payload"`
+	Ref     interface{} `json:"ref"`
+	Topic   string      `json:"topic"`
 }
 
 func (s *Socket) Connect() {
-
 	c, _, err := websocket.DefaultDialer.Dial(s.UrlString.String(), nil)
 	if err != nil {
 		log.Fatal("dial:", err)
 	}
+	log.Printf("connecting to %s", s.UrlString.String())
 
-	defer c.Close()
+	// defer c.Close()
 
 	s.Connected = true
 	s.Connection = c
@@ -33,37 +39,56 @@ func (s *Socket) Connect() {
 
 func (s *Socket) SetChannel(topic string) *channel.Channel {
 	channel := &channel.Channel{Socket: s.Connection, Topic: topic}
-	s.Channels = append(s.Channels, *channel)
+	s.Channels = append(s.Channels, channel)
 	return channel
 }
 
 func (s *Socket) Listen() {
-	defer s.Connection.Close()
+	log.Println(s)
+	// defer s.Connection.Close()
+
+	done := make(chan struct{})
 
 	go func() {
-		ticker := time.NewTicker(5 * time.Second)
+		// defer close(done)
 
 		for {
-			select {
-			case <-ticker.C:
-				data, _ := json.Marshal(&channel.PhxJson{Topic: "phoenix", Event: "heartbeat", Payload: "{\"msg\": \"ping\"}", Ref: nil})
-				err := s.Connection.WriteMessage(websocket.PingMessage, data)
+			_, message, err := s.Connection.ReadMessage()
 
-				if err != nil {
-					log.Println("Error:", err)
+			var data Reply
+			json.Unmarshal(message, &data)
+
+			for _, v := range s.Channels {
+				if v.Topic == data.Topic {
+					for _, v2 := range v.Listeners {
+						if v2.Event == data.Event || v2.Event == "*" {
+							v2.Callback(data.Payload)
+						}
+					}
 				}
 			}
+
+			if err != nil {
+				log.Println("Error:", err)
+			}
+
 		}
 	}()
 
+	ticker := time.NewTicker(5 * time.Second)
+
 	for {
-		_, message, err := s.Connection.ReadMessage()
+		select {
+		case <-done:
+			return
+		case <-ticker.C:
+			data, _ := json.Marshal(&channel.PhxJson{Topic: "phoenix", Event: "heartbeat", Payload: "{\"msg\": \"ping\"}", Ref: nil})
+			err := s.Connection.WriteMessage(websocket.TextMessage, data)
 
-		if err != nil {
-			log.Println("Error:", err)
+			if err != nil {
+				log.Println("Error:", err)
+			}
 		}
-
-		fmt.Println(message)
 	}
 
 }
