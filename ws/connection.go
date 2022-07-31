@@ -43,7 +43,6 @@ func (s *Socket) SetChannel(topic string) *Channel {
 }
 
 func (s *Socket) Listen() {
-	log.Println(s)
 	// defer s.Connection.Close()
 
 	done := make(chan struct{})
@@ -61,8 +60,6 @@ func (s *Socket) Listen() {
 
 				if v.Topic == data.Topic {
 					for _, v2 := range v.Listeners {
-						log.Println(v2.Event)
-						log.Println(data.Event)
 						if v2.Event == data.Event || v2.Event == "*" {
 							v2.Callback(data.Payload)
 						}

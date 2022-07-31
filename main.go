@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"time"
@@ -47,24 +49,35 @@ func SSE(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	// http.HandleFunc("/stream", SSE)
+	go func() {
 
-	// log.Fatal("HTTP server error: ", http.ListenAndServe("localhost:8080", nil))
+		u := url.URL{Scheme: "ws", Host: "157.230.244.51:4000", Path: "/socket/websocket"}
 
-	// @TODO pass message to SSE
-	u := url.URL{Scheme: "ws", Host: "157.230.244.51:4000", Path: "/socket/websocket"}
+		s := &ws.Socket{UrlString: u}
 
-	s := &ws.Socket{UrlString: u}
+		s.Connect()
 
-	s.Connect()
+		channel := s.SetChannel("realtime:public:Submission")
 
-	channel := s.SetChannel("realtime:public:Submission")
+		channel.Join()
+		channel.On("*", func(data interface{}) {
+			d := data.(map[string]interface{})["record"]
 
-	channel.Join()
-	channel.On("*", func(data interface{}) {
-		fmt.Println(data)
-	})
+			if d != nil {
+				id := d.(map[string]interface{})["id"].(string)
+				raw := d.(map[string]interface{})["groups"]
+				var groups []ws.Group
+				json.Unmarshal([]byte(raw.(string)), &groups)
+				payload := map[string][]ws.Group{id: groups}
+				msg <- payload
+			}
 
-	s.Listen()
+		})
+
+		s.Listen()
+	}()
+
+	http.HandleFunc("/stream", SSE)
+	log.Fatal("HTTP server error: ", http.ListenAndServe("localhost:8080", nil))
 
 }
