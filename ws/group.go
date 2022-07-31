@@ -1,4 +1,4 @@
-package group
+package ws
 
 import (
 	"encoding/json"
@@ -22,7 +22,7 @@ type Group struct {
 	RunResult    []RunResult `json:"run_result"`
 }
 
-func GroupToJSONString(group Group) string {
+func GroupToJSONString(group []Group) string {
 	bytes, _ := json.Marshal(group)
 
 	return string(bytes)

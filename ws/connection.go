@@ -1,4 +1,4 @@
-package connection
+package ws
 
 import (
 	"encoding/json"
@@ -7,14 +7,13 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/programming-in-th/rtss/channel"
 )
 
 type Socket struct {
 	Connection *websocket.Conn
 	Connected  bool
 	UrlString  url.URL
-	Channels   []*channel.Channel
+	Channels   []*Channel
 }
 
 type Reply struct {
@@ -37,8 +36,8 @@ func (s *Socket) Connect() {
 	s.Connection = c
 }
 
-func (s *Socket) SetChannel(topic string) *channel.Channel {
-	channel := &channel.Channel{Socket: s.Connection, Topic: topic}
+func (s *Socket) SetChannel(topic string) *Channel {
+	channel := &Channel{Socket: s.Connection, Topic: topic}
 	s.Channels = append(s.Channels, channel)
 	return channel
 }
@@ -59,8 +58,11 @@ func (s *Socket) Listen() {
 			json.Unmarshal(message, &data)
 
 			for _, v := range s.Channels {
+
 				if v.Topic == data.Topic {
 					for _, v2 := range v.Listeners {
+						log.Println(v2.Event)
+						log.Println(data.Event)
 						if v2.Event == data.Event || v2.Event == "*" {
 							v2.Callback(data.Payload)
 						}
@@ -82,7 +84,7 @@ func (s *Socket) Listen() {
 		case <-done:
 			return
 		case <-ticker.C:
-			data, _ := json.Marshal(&channel.PhxJson{Topic: "phoenix", Event: "heartbeat", Payload: "{\"msg\": \"ping\"}", Ref: nil})
+			data, _ := json.Marshal(&PhxJson{Topic: "phoenix", Event: "heartbeat", Payload: "{\"msg\": \"ping\"}", Ref: nil})
 			err := s.Connection.WriteMessage(websocket.TextMessage, data)
 
 			if err != nil {

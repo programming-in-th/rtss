@@ -1,4 +1,4 @@
-package channel
+package ws
 
 import (
 	"encoding/json"

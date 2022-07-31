@@ -6,12 +6,11 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/programming-in-th/rtss/connection"
-	"github.com/programming-in-th/rtss/group"
+	"github.com/programming-in-th/rtss/ws"
 )
 
 // data variable
-var msg chan group.Group
+var msg chan map[string][]ws.Group
 
 func SSE(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/event-stream")
@@ -20,7 +19,9 @@ func SSE(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.WriteHeader(http.StatusOK)
 
-	msg = make(chan group.Group)
+	id := r.URL.Query().Get("id")
+
+	msg = make(chan map[string][]ws.Group)
 
 	defer func() {
 		close(msg)
@@ -32,9 +33,12 @@ func SSE(w http.ResponseWriter, r *http.Request) {
 	for {
 		select {
 		case g := <-msg:
-			fmt.Fprintf(w, "data: %s\n\n", group.GroupToJSONString(g))
-			w.(http.Flusher).Flush()
+			if val, ok := g[id]; ok {
+				fmt.Fprintf(w, "data: %s\n\n", ws.GroupToJSONString(val))
+				w.(http.Flusher).Flush()
+			}
 		case <-r.Context().Done():
+			return
 		case <-timeout:
 			return
 		}
@@ -50,7 +54,7 @@ func main() {
 	// @TODO pass message to SSE
 	u := url.URL{Scheme: "ws", Host: "157.230.244.51:4000", Path: "/socket/websocket"}
 
-	s := &connection.Socket{UrlString: u}
+	s := &ws.Socket{UrlString: u}
 
 	s.Connect()
 
