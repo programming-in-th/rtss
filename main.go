@@ -61,6 +61,8 @@ func main() {
 
 		s.Connect()
 
+		defer s.Connection.Close()
+
 		channel := s.SetChannel("realtime:public:Submission")
 
 		channel.Join()

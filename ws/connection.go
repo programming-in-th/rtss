@@ -30,8 +30,6 @@ func (s *Socket) Connect() {
 	}
 	log.Printf("connecting to %s", s.UrlString.String())
 
-	// defer c.Close()
-
 	s.Connected = true
 	s.Connection = c
 }
@@ -43,12 +41,10 @@ func (s *Socket) SetChannel(topic string) *Channel {
 }
 
 func (s *Socket) Listen() {
-	// defer s.Connection.Close()
-
 	done := make(chan struct{})
 
 	go func() {
-		// defer close(done)
+		defer close(done)
 
 		for {
 			_, message, err := s.Connection.ReadMessage()
