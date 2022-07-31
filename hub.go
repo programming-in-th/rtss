@@ -43,11 +43,13 @@ func (h *Hub) run() {
 			}
 		case message := <-h.broadcast:
 			for client, id := range h.clients {
-				select {
-				case client.send <- message[id]:
-				default:
-					close(client.send)
-					delete(h.clients, client)
+				if client.id == id {
+					select {
+					case client.send <- message[id]:
+					default:
+						close(client.send)
+						delete(h.clients, client)
+					}
 				}
 			}
 		}
