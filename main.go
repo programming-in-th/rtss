@@ -19,9 +19,9 @@ type Client struct {
 }
 
 type Payload struct {
-	Id     string     `json:"id"`
-	Groups []ws.Group `json:"groups"`
-	Status string     `json:"status"`
+	Id     string  `json:"id"`
+	Groups []Group `json:"groups"`
+	Status string  `json:"status"`
 }
 
 func SSE(hub *Hub, w http.ResponseWriter, r *http.Request) {
@@ -78,8 +78,10 @@ func main() {
 			if d != nil {
 				id := d.(map[string]interface{})["id"].(string)
 				raw := d.(map[string]interface{})["groups"]
-				var groups []ws.Group
+
+				var groups []Group
 				json.Unmarshal([]byte(raw.(string)), &groups)
+
 				payload := Payload{Id: id, Groups: groups, Status: d.(map[string]interface{})["status"].(string)}
 				hub.broadcast <- payload
 			}

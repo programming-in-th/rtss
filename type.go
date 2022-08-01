@@ -1,4 +1,4 @@
-package ws
+package main
 
 type RunResult struct {
 	SubmissionId string  `json:"submission_id"`
