@@ -53,7 +53,6 @@ func (s *Socket) Listen() {
 			json.Unmarshal(message, &data)
 
 			for _, v := range s.Channels {
-
 				if v.Topic == data.Topic {
 					for _, v2 := range v.Listeners {
 						if v2.Event == data.Event || v2.Event == "*" {
