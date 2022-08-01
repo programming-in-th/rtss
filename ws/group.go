@@ -1,9 +1,5 @@
 package ws
 
-import (
-	"encoding/json"
-)
-
 type RunResult struct {
 	SubmissionId string  `json:"submission_id"`
 	TestIndex    uint64  `json:"test_index"`
@@ -20,10 +16,4 @@ type Group struct {
 	SubmissionId string      `json:"submission_id"`
 	GroupIndex   uint64      `json:"group_index"`
 	RunResult    []RunResult `json:"run_result"`
-}
-
-func GroupToJSONString(group []Group) string {
-	bytes, _ := json.Marshal(group)
-
-	return string(bytes)
 }

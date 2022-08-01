@@ -28,7 +28,6 @@ func (s *Socket) Connect() {
 	if err != nil {
 		log.Fatal("dial:", err)
 	}
-	log.Printf("connecting to %s", s.UrlString.String())
 
 	s.Connected = true
 	s.Connection = c

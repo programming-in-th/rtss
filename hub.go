@@ -4,8 +4,6 @@
 
 package main
 
-import "github.com/programming-in-th/rtss/ws"
-
 // Hub maintains the set of active clients and broadcasts messages to the
 // clients.
 type Hub struct {
@@ -13,7 +11,7 @@ type Hub struct {
 	clients map[*Client]string
 
 	// Inbound messages from the clients.
-	broadcast chan map[string][]ws.Group
+	broadcast chan Payload
 
 	// Register requests from the clients.
 	register chan *Client
@@ -24,7 +22,7 @@ type Hub struct {
 
 func newHub() *Hub {
 	return &Hub{
-		broadcast:  make(chan map[string][]ws.Group),
+		broadcast:  make(chan Payload),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 		clients:    make(map[*Client]string),
@@ -43,9 +41,9 @@ func (h *Hub) run() {
 			}
 		case message := <-h.broadcast:
 			for client, id := range h.clients {
-				if val, ok := message[id]; ok {
+				if id == message.Id {
 					select {
-					case client.send <- val:
+					case client.send <- message:
 					default:
 						close(client.send)
 						delete(h.clients, client)

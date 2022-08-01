@@ -15,7 +15,13 @@ import (
 type Client struct {
 	id   string
 	hub  *Hub
-	send chan []ws.Group
+	send chan Payload
+}
+
+type Payload struct {
+	Id     string     `json:"id"`
+	Groups []ws.Group `json:"groups"`
+	Status string     `json:"status"`
 }
 
 func SSE(hub *Hub, w http.ResponseWriter, r *http.Request) {
@@ -28,7 +34,7 @@ func SSE(hub *Hub, w http.ResponseWriter, r *http.Request) {
 
 	id := r.URL.Query().Get("id")
 
-	client := &Client{id: id, hub: hub, send: make(chan []ws.Group, 256)}
+	client := &Client{id: id, hub: hub, send: make(chan Payload, 256)}
 	client.hub.register <- client
 	defer func() {
 		client.hub.unregister <- client
@@ -39,7 +45,7 @@ func SSE(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	for {
 		select {
 		case message := <-client.send:
-			fmt.Fprintf(w, "data: %s\n\n", ws.GroupToJSONString(message))
+			fmt.Fprintf(w, "data: %s\n\n", PayloadToJSONString(message))
 			w.(http.Flusher).Flush()
 
 		case <-r.Context().Done():
@@ -74,7 +80,7 @@ func main() {
 				raw := d.(map[string]interface{})["groups"]
 				var groups []ws.Group
 				json.Unmarshal([]byte(raw.(string)), &groups)
-				payload := map[string][]ws.Group{id: groups}
+				payload := Payload{Id: id, Groups: groups, Status: d.(map[string]interface{})["status"].(string)}
 				hub.broadcast <- payload
 			}
 
