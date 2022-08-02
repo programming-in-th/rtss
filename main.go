@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"time"
 
 	"github.com/programming-in-th/rtss/ws"
@@ -61,8 +62,24 @@ func main() {
 	hub := newHub()
 	go hub.run()
 
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+		log.Printf("defaulting to port %s", port)
+	}
+
+	wsHost := os.Getenv("WS_HOST")
+	if wsHost == "" {
+		wsHost = "157.230.244.51:4000"
+	}
+
+	wsPath := os.Getenv("WS_PATH")
+	if wsPath == "" {
+		wsPath = "/socket/websocket"
+	}
+
 	go func() {
-		u := url.URL{Scheme: "ws", Host: "157.230.244.51:4000", Path: "/socket/websocket"}
+		u := url.URL{Scheme: "ws", Host: wsHost, Path: wsPath}
 		s := &ws.Socket{UrlString: u}
 
 		s.Connect()
@@ -79,10 +96,17 @@ func main() {
 				id := d.(map[string]interface{})["id"].(string)
 				raw := d.(map[string]interface{})["groups"]
 
+				if raw.(string) == "unchanged_toast" {
+					o := data.(map[string]interface{})["old_record"]
+					raw = o.(map[string]interface{})["groups"]
+				}
+
 				var groups []Group
 				json.Unmarshal([]byte(raw.(string)), &groups)
 
 				payload := Payload{Id: id, Groups: groups, Status: d.(map[string]interface{})["status"].(string)}
+				fmt.Println(payload)
+
 				hub.broadcast <- payload
 			}
 
@@ -94,6 +118,6 @@ func main() {
 	http.HandleFunc("/stream", func(w http.ResponseWriter, r *http.Request) {
 		SSE(hub, w, r)
 	})
-	log.Fatal("HTTP server error: ", http.ListenAndServe("localhost:8080", nil))
+	log.Fatal("HTTP server error: ", http.ListenAndServe(":"+port, nil))
 
 }
