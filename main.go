@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/programming-in-th/rtss/ws"
@@ -14,13 +15,13 @@ import (
 
 // Client is a middleman between the websocket connection and the hub.
 type Client struct {
-	id   string
+	id   uint64
 	hub  *Hub
 	send chan Payload
 }
 
 type Payload struct {
-	Id     string  `json:"id"`
+	Id     uint64  `json:"id"`
 	Groups []Group `json:"groups"`
 	Status string  `json:"status"`
 }
@@ -33,7 +34,8 @@ func SSE(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.WriteHeader(http.StatusOK)
 
-	id := r.URL.Query().Get("id")
+	rawId := r.URL.Query().Get("id")
+	id, _ := strconv.ParseUint(rawId, 10, 32)
 
 	client := &Client{id: id, hub: hub, send: make(chan Payload, 256)}
 	client.hub.register <- client
@@ -93,7 +95,7 @@ func main() {
 			d := data.(map[string]interface{})["record"]
 
 			if d != nil {
-				id := d.(map[string]interface{})["id"].(string)
+				id := d.(map[string]interface{})["id"].(uint64)
 				raw := d.(map[string]interface{})["groups"]
 
 				if raw.(string) == "unchanged_toast" {
