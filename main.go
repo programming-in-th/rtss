@@ -95,7 +95,9 @@ func main() {
 			d := data.(map[string]interface{})["record"]
 
 			if d != nil {
-				id := d.(map[string]interface{})["id"].(uint64)
+				rawId := d.(map[string]interface{})["id"].(string)
+				id, _ := strconv.ParseUint(rawId, 10, 32)
+
 				raw := d.(map[string]interface{})["groups"]
 
 				if raw.(string) == "unchanged_toast" {
@@ -107,7 +109,6 @@ func main() {
 				json.Unmarshal([]byte(raw.(string)), &groups)
 
 				payload := Payload{Id: id, Groups: groups, Status: d.(map[string]interface{})["status"].(string)}
-				fmt.Println(payload)
 
 				hub.broadcast <- payload
 			}
