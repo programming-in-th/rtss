@@ -23,6 +23,7 @@ type Client struct {
 type Payload struct {
 	Id     uint64  `json:"id"`
 	Groups []Group `json:"groups"`
+	Score  int32   `json:"score"`
 	Status string  `json:"status"`
 }
 
@@ -107,8 +108,9 @@ func main() {
 
 				var groups []Group
 				json.Unmarshal([]byte(raw.(string)), &groups)
+				score := d.(map[string]interface{})["score"].(int32)
 
-				payload := Payload{Id: id, Groups: groups, Status: d.(map[string]interface{})["status"].(string)}
+				payload := Payload{Id: id, Groups: groups, Score: score, Status: d.(map[string]interface{})["status"].(string)}
 
 				hub.broadcast <- payload
 			}
